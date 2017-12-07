@@ -10,20 +10,23 @@ Grab a stable binary from the [Releases](https://github.com/KyleBanks/readme/rel
 $ go get github.com/KyleBanks/readme
 ```
 
-
 ## Usage
 
 Usage is straightforward, simply execute `readme` with the username and repository you'd like to view:
 
 ```sh
-$ readme KyleBanks/depth
-...
+$ readme KyleBanks/readme
 ```
+
+![Example](./_example/example.png)
 
 If you prefer output in plain-text, use the `-raw` flag:
 
 ```sh
-$ readme KyleBanks/depth -raw
+$ readme KyleBanks/readme -raw
+# readme
+
+`readme` is a command-line tool to fetch and display the README of any open source project.
 ...
 ```
 
