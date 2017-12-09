@@ -11,7 +11,8 @@ import (
 )
 
 const (
-	FlagRaw = "-raw"
+	FlagRaw      = "-raw"
+	FlagNoImages = "-no-images"
 )
 
 var (
@@ -23,18 +24,27 @@ type Args struct {
 	Username   string
 	Repository string
 
-	Raw bool
+	Raw      bool
+	NoImages bool
 }
 
-func (a Args) Outputter() ui.Outputter {
+func (a Args) Outputter() (ui.Outputter, error) {
 	if a.Raw {
-		return ui.RawOutputter{}
+		return ui.RawOutputter{}, nil
 	}
-	return &ui.PrettyOutputter{}
+
+	r, err := a.Resolver()
+	if err != nil {
+		return nil, err
+	}
+
+	o := ui.NewPrettyOutputter(r)
+	o.NoImages = a.NoImages
+	return o, nil
 }
 
-func (a Args) Resolver() git.Resolver {
-	return http.NewGitHubHttpResolver()
+func (a Args) Resolver() (git.Resolver, error) {
+	return http.NewGitHubHttpResolver(a.Username, a.Repository)
 }
 
 func parseArgs(args []string) (*Args, error) {
@@ -57,6 +67,8 @@ func parseArgs(args []string) (*Args, error) {
 			switch arg {
 			case FlagRaw:
 				parsed.Raw = true
+			case FlagNoImages:
+				parsed.NoImages = true
 			default:
 				return nil, fmt.Errorf("Unknown argument: %v", arg)
 			}

@@ -21,6 +21,12 @@
 
 [[projects]]
   branch = "master"
+  name = "github.com/nfnt/resize"
+  packages = ["."]
+  revision = "891127d8d1b52734debe1b3c3d7e747502b6c366"
+
+[[projects]]
+  branch = "master"
   name = "github.com/shurcooL/sanitized_anchor_name"
   packages = ["."]
   revision = "86672fcb3f950f35f2e675df2240550f2a50762f"
@@ -40,6 +46,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "cfc9eb5d260629fd29d00f03638a441214ff32ddc081f9ae8e08fcfc3f3edb72"
+  inputs-digest = "bfd38dcb19df60925495f6e0fdbccbbedd926d8b33dbaf930bc6549f11f54513"
   solver-name = "gps-cdcl"
   solver-version = 1

@@ -1,15 +1,29 @@
 package ui
 
 import (
+	"bytes"
 	"fmt"
+	"image"
+	imgcolor "image/color"
+	_ "image/jpeg"
+	_ "image/png"
 	"io"
+	"reflect"
 	"strings"
 
 	"github.com/fatih/color"
+	"github.com/nfnt/resize"
 	"gopkg.in/russross/blackfriday.v2"
 )
 
 type WriteFn func(io.Writer, string, ...interface{})
+
+const (
+	asciiCharacters = "MND8OZ$7I?+=~:,.."
+
+	maxImgWidth  = 75
+	maxImgHeight = 30
+)
 
 var (
 	writeMajorHeader WriteFn = color.New(color.FgHiBlue, color.Bold, color.Underline).FprintfFunc()
@@ -17,13 +31,27 @@ var (
 	writeCode        WriteFn = color.New(color.FgHiMagenta, color.Italic).FprintfFunc()
 	writeText        WriteFn = color.New(color.FgHiWhite).FprintfFunc()
 	writeLink        WriteFn = color.New(color.FgHiRed, color.Underline).FprintfFunc()
+	writeImage       WriteFn = color.New(color.FgWhite).FprintfFunc()
 	writeUnknown     WriteFn = color.New(color.FgHiRed).FprintfFunc()
 )
 
-type PrettyOutputter struct {
-	writer io.Writer
+type FileResolver interface {
+	Resolve(string) (string, error)
+}
 
+type PrettyOutputter struct {
+	NoImages bool
+
+	fileResolver FileResolver
+
+	writer           io.Writer
 	isContinuingLine bool
+}
+
+func NewPrettyOutputter(f FileResolver) *PrettyOutputter {
+	return &PrettyOutputter{
+		fileResolver: f,
+	}
 }
 
 func (p *PrettyOutputter) Output(w io.Writer, readme string) error {
@@ -65,6 +93,11 @@ func (p *PrettyOutputter) outputNode(n *blackfriday.Node, indent int) error {
 	case blackfriday.Link:
 		writeFn = writeLink
 		skipChild = true
+
+	case blackfriday.Image:
+		writeFn = writeImage
+		skipChild = true
+		newline = true
 
 	default:
 		writeFn = writeUnknown
@@ -112,13 +145,53 @@ func (p *PrettyOutputter) nodeContents(n *blackfriday.Node) string {
 		return fmt.Sprintf("<%s>", n.LinkData.Destination)
 
 	case blackfriday.Image:
-		return ""
+		if p.NoImages {
+			return fmt.Sprintf("[Image: %s]", n.LinkData.Destination)
+		}
+
+		ascii, err := p.asciiImage(string(n.LinkData.Destination))
+		if err != nil {
+			return fmt.Sprintf("[Image: %s]", n.LinkData.Destination)
+		}
+		return ascii
+
 	case blackfriday.Document:
 		return ""
-
 	default:
 		return fmt.Sprintf("Type=%v\n", n.Type)
 	}
+}
+
+// asciiImage returns an ASCII representation of an image.
+//
+// Adapted from: https://github.com/stdupp/goasciiart
+func (p *PrettyOutputter) asciiImage(imgUrl string) (string, error) {
+	imgContents, err := p.fileResolver.Resolve(imgUrl)
+	if err != nil {
+		return "", err
+	}
+
+	img, _, err := image.Decode(strings.NewReader(imgContents))
+	if err != nil {
+		return "", err
+	}
+
+	img = resize.Thumbnail(maxImgWidth, maxImgHeight, img, resize.Bilinear)
+	h := img.Bounds().Max.Y
+	w := img.Bounds().Max.X
+
+	table := []byte(asciiCharacters)
+	var buf bytes.Buffer
+	for i := 0; i < h; i++ {
+		for j := 0; j < w; j++ {
+			g := imgcolor.GrayModel.Convert(img.At(j, i))
+			y := reflect.ValueOf(g).FieldByName("Y").Uint()
+			pos := int(y * 16 / 255)
+			buf.WriteByte(table[pos])
+		}
+		buf.WriteByte('\n')
+	}
+	return buf.String(), nil
 }
 
 func (p *PrettyOutputter) write(w WriteFn, s string, newline bool, indent int) {

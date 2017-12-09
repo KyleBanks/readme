@@ -3,7 +3,7 @@ PACKAGE = github.com/KyleBanks/readme
 RELEASE_PLATFORMS = darwin/386 darwin/amd64 linux/386 linux/amd64 linux/arm windows/386 windows/amd64
 
 example: | install
-	@readme KyleBanks/readme
+	@readme KyleBanks/goggles
 .PHONY: example
 
 install:

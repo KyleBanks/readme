@@ -1,38 +1,43 @@
 package http
 
 import (
-	"bytes"
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"net/http"
-	"text/template"
+	"net/url"
+	"strings"
 )
-
-const (
-	githubHttpTemplate = "https://raw.githubusercontent.com/{{.Username}}/{{.Repository}}/master/{{.Filename}}"
-)
-
-func NewGitHubHttpResolver() *HttpResolver {
-	return &HttpResolver{
-		template: template.Must(template.New("github").Parse(githubHttpTemplate)),
-	}
-}
 
 type HttpResolver struct {
-	template *template.Template
+	baseUrl *url.URL
 }
 
-func (h *HttpResolver) Resolve(username, repository, filename string) (string, error) {
-	var url bytes.Buffer
-	err := h.template.Execute(&url, map[string]string{
-		"Username":   username,
-		"Repository": repository,
-		"Filename":   filename,
-	})
+func NewGitHubHttpResolver(username, repository string) (*HttpResolver, error) {
+	url, err := url.Parse(fmt.Sprintf("https://raw.githubusercontent.com/%s/%s/master/", username, repository))
+	if err != nil {
+		return nil, err
+	}
+
+	return &HttpResolver{
+		baseUrl: url,
+	}, nil
+}
+
+// Resolve downloads a file relative to the GitHub repository. If the filename provided is an absolute URL,
+// as opposed to relative, it will still be downloaded.
+func (h *HttpResolver) Resolve(filename string) (string, error) {
+	// Images can be `/example.png` but its not actually a root URL its relative to user/repo/master/
+	if strings.HasPrefix(filename, "/") {
+		filename = "." + filename
+	}
+
+	fileUrl, err := url.Parse(filename)
 	if err != nil {
 		return "", err
 	}
 
+	url := h.baseUrl.ResolveReference(fileUrl)
 	resp, err := http.Get(url.String())
 	if err != nil {
 		return "", err

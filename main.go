@@ -6,7 +6,6 @@ import (
 	"os"
 
 	"github.com/KyleBanks/readme/git"
-	"github.com/KyleBanks/readme/git/http"
 	"github.com/KyleBanks/readme/ui"
 )
 
@@ -21,25 +20,24 @@ func main() {
 		return
 	}
 
-	readme, err := fetchReadme(http.NewGitHubHttpResolver(), args.Username, args.Repository)
-	if err != nil {
-		fmt.Printf("ERROR: failed to fetch README: %v\n", err)
-		os.Exit(1)
-		return
-	}
+	resolver, err := args.Resolver()
+	check(err)
 
-	if err := output(os.Stdout, readme, args.Outputter()); err != nil {
-		fmt.Printf("ERROR: failed to generate output: %v\n", err)
-		os.Exit(1)
-		return
-	}
+	readme, err := fetchReadme(resolver)
+	check(err)
+
+	out, err := args.Outputter()
+	check(err)
+
+	err = output(os.Stdout, readme, out)
+	check(err)
 }
 
-func fetchReadme(r git.Resolver, username, repository string) (string, error) {
+func fetchReadme(r git.Resolver) (string, error) {
 	var err error
 	var contents string
 	for _, filename := range readmeVariations {
-		contents, err = r.Resolve(username, repository, filename)
+		contents, err = r.Resolve(filename)
 		if err == nil {
 			break
 		}
@@ -63,4 +61,14 @@ func printUsage() {
 	fmt.Println("\treadme username/repository [options...]")
 	fmt.Println("\nOptions:")
 	fmt.Printf("\t%v: outputs the readme as plain text\n", FlagRaw)
+	fmt.Printf("\t%v: skips rendering of images\n", FlagNoImages)
+}
+
+func check(err error) {
+	if err == nil {
+		return
+	}
+
+	fmt.Printf("ERROR: %v\n", err)
+	os.Exit(1)
 }

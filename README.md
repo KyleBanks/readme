@@ -2,6 +2,8 @@
 
 `readme` is a command-line tool to fetch and display the README of any open source project.
 
+**Note:** `readme` is a work-in-progress and currently unstable.
+
 ## Installation
 
 Grab a stable binary from the [Releases](https://github.com/KyleBanks/readme/releases) page and add it to your `$PATH`, or install from source like so:
@@ -20,6 +22,10 @@ $ readme KyleBanks/readme
 
 ![Example](./_example/example.png)
 
+## Options
+
+**-raw**:
+
 If you prefer output in plain-text, use the `-raw` flag:
 
 ```sh
@@ -28,6 +34,17 @@ $ readme KyleBanks/readme -raw
 
 `readme` is a command-line tool to fetch and display the README of any open source project.
 ...
+```
+
+**-no-images**:
+
+By default, `readme` attempts to render ASCII versions of all images in the README. If you'd prefer to skip image rendering, use the `-no-images` flag:
+
+```sh
+$ readme KyleBanks/goggles -no-images
+# goggles 
+...
+[Image example.png]
 ```
 
 ## Authors
